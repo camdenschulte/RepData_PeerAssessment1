@@ -5,21 +5,80 @@ output:
     keep_md: true
 ---
 
-
 ## Loading and preprocessing the data
+First, I read in the dataset.
 
-
+```{r,echo=TRUE,results='hide'}
+dat <- read.csv("activity.csv")
+library(dplyr)
+library(lubridate)
+dat$date <- ymd(dat$date)
+```
 
 ## What is mean total number of steps taken per day?
+Next, I find the mean and median number of steps taken in a day.
 
+```{r,echo=TRUE}
+totalstepsbyday <- tapply(dat$steps,dat$date,sum,na.rm=TRUE)
+hist(totalstepsbyday)
+meanstepsperday <- mean(totalstepsbyday)
+medianstepsperday <- median(totalstepsbyday)
+```
 
+The mean of steps taken per day is `r meanstepsperday` 
+and the median of steps taken per day is `r medianstepsperday`.
 
 ## What is the average daily activity pattern?
+Let's look at the daily activity pattern.
 
+```{r, echo=TRUE}
+averagestepsperinterval <- tapply(dat$steps,dat$interval,mean,na.rm=TRUE)
+plot(dat$interval[1:288], averagestepsperinterval, type = 'l', xlab = "Interval", ylab="Average Steps")
+maxinterval <- dat$interval[which.max(averagestepsperinterval)]
+```
 
+The 5-minute interval with the most average steps is the one starting at `r maxinterval`.
 
 ## Imputing missing values
+Let's work with some of our missing values.
 
+```{r,echo=TRUE}
+numberofmissingvalues <- sum(is.na(dat$steps))
+```
+
+
+
+There are `r numberofmissingvalues` observations with missing values.
+Let's replace those with the average number of steps for any given interval.
+
+```{r, echo=TRUE}
+datnew <- dat
+datnew$steps[is.na(datnew$steps)] <- mean(datnew$steps, na.rm = T)
+colSums(is.na(datnew))
+totalstepsbydaynew <- tapply(datnew$steps,datnew$date,sum,na.rm=TRUE)
+hist(totalstepsbydaynew)
+meanstepsperday2 <- mean(totalstepsbyday)
+medianstepsperday2 <- median(totalstepsbyday)
+```
+
+The mean of steps taken per day is `r meanstepsperday2` 
+and the median of steps taken per day is `r medianstepsperday2`.
+
+The distribution became less skewed with the imputed missing values.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r,echo=TRUE}
+datnew$week <- weekdays(datnew$date)
+datnew$week  <- ifelse(datnew$week %in% c("Saturday","Sunday"), "Weekend","Weekday")
+datnew$week <- as.factor(datnew$week)
+library(lattice)
+averagestepsperinterval2 <- tapply(datnew$steps,list(datnew$interval,datnew$week),mean,na.rm=TRUE)
+par(mfrow=c(1,2))
+plot(dat$interval[1:288], averagestepsperinterval2[,1], type = 'l', xlab = "Interval", ylab="Average Steps", main ="Weekday")
+plot(dat$interval[1:288], averagestepsperinterval2[,2], type = 'l', xlab = "Interval", ylab="Average Steps", main="Weekend")
+```
+
+
+
